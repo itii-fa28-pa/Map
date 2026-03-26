@@ -21,7 +21,7 @@ class Authentification : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        setContentView(R.layout.activity_authentification)
+        setContentView(R.layout.authentification_activity)
         auth = Firebase.auth // authentification a firebase
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
@@ -44,7 +44,7 @@ class Authentification : AppCompatActivity() {
             .addOnCompleteListener(this) { task ->
                 if (task.isSuccessful) {
                     Log.d("Auth", "Connexion réussie !")
-                    startActivity(Intent(this, map::class.java))
+                    startActivity(Intent(this, TestActivity::class.java))
                     finish()
                 } else {
                     // Récupère le type d'erreur Firebase
@@ -73,8 +73,7 @@ class Authentification : AppCompatActivity() {
     }
 
     fun onClick_bt_CreateAccount(view: View) {
-        val intent = Intent(this, newaccount::class.java)
+        val intent = Intent(this, CreateAccountActivity::class.java)
         startActivity(intent)
     }
-
 }

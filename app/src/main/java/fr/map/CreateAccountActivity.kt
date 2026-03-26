@@ -12,17 +12,16 @@ import com.google.firebase.auth.auth
 import android.content.Intent
 import android.util.Log
 import android.widget.EditText
-import com.google.firebase.auth.auth
 import android.widget.Toast
 
-class newaccount : AppCompatActivity() {
+class CreateAccountActivity : AppCompatActivity() {
     private lateinit var auth: FirebaseAuth
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         auth = Firebase.auth
-        setContentView(R.layout.activity_newaccount)
+        setContentView(R.layout.create_account_activity)
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
@@ -66,7 +65,7 @@ class newaccount : AppCompatActivity() {
                             Log.d("Auth", "Compte créé !")
                             Toast.makeText(this, "Compte créé avec succès !", Toast.LENGTH_LONG)
                                 .show()
-                            startActivity(Intent(this, map::class.java))
+                            startActivity(Intent(this, TestActivity::class.java))
                             finish()
                         } else {
                             when {

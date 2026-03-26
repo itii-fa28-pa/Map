@@ -11,11 +11,21 @@
         android:roundIcon="@drawable/ic_launcher_background"
         android:supportsRtl="true"
         android:theme="@style/Theme.Map">
+
+        <activity
+            android:name=".TestActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".CreateMarkerActivity"
+            android:exported="true">
+         </activity>
+
         <activity
             android:name=".map"
             android:exported="false" />
         <activity
-            android:name=".newaccount"
+            android:name=".CreateAccountActivity"
             android:exported="false" />
         <activity
             android:name=".Authentification"
@@ -26,6 +36,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
     </application>
 
 </manifest>

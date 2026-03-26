@@ -5,16 +5,15 @@
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".map">
+    tools:context=".TestActivity">
 
     <Button
-        android:id="@+id/bt_retour"
+        android:id="@+id/createMarker"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="130dp"
-        android:layout_marginTop="205dp"
-        android:onClick="onClick_bt_retour"
-        android:text="retour"
+        android:layout_marginTop="134dp"
+        android:text="Créer un marker"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 </androidx.constraintlayout.widget.ConstraintLayout>
