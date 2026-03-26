@@ -35,7 +35,7 @@ class TestActivity : AppCompatActivity() {
 
     fun retour() {
         // --- Changement de page
-        val changePage = Intent(this, MainActivity::class.java)
+        val changePage = Intent(this, CreateMarkerActivity::class.java)
         startActivity(changePage)
     }
 }
