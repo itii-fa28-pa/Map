@@ -26,14 +26,14 @@ class TestActivity : AppCompatActivity() {
             insets
         }
 
-        val btnRetour = findViewById<Button>(R.id.btnRetour)
+        val btnRetour = findViewById<Button>(R.id.createMarker)
         btnRetour.setOnClickListener {
             Toast.makeText(this, "Vous avez cliqué sur retour", Toast.LENGTH_LONG).show()
-            retour()
+            createMarker()
         }
     }
 
-    fun retour() {
+    fun createMarker() {
         // --- Changement de page
         val changePage = Intent(this, CreateMarkerActivity::class.java)
         startActivity(changePage)

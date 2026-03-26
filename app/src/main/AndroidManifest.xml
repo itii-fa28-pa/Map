@@ -25,7 +25,7 @@
             android:name=".map"
             android:exported="false" />
         <activity
-            android:name=".newaccount"
+            android:name=".CreateAccountActivity"
             android:exported="false" />
         <activity
             android:name=".Authentification"
