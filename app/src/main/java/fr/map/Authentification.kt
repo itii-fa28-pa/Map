@@ -13,6 +13,8 @@ import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.auth
 import android.widget.Toast
+import androidx.core.view.WindowCompat.enableEdgeToEdge
+import kotlin.jvm.java
 
 class Authentification : AppCompatActivity() {
 

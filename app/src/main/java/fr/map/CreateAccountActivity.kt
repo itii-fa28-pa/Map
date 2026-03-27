@@ -13,6 +13,7 @@ import android.content.Intent
 import android.util.Log
 import android.widget.EditText
 import android.widget.Toast
+import androidx.core.view.WindowCompat.enableEdgeToEdge
 
 class CreateAccountActivity : AppCompatActivity() {
     private lateinit var auth: FirebaseAuth

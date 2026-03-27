@@ -1,20 +1,14 @@
 package fr.map
 
 import android.Manifest
-import android.R.attr.data
 import android.content.Intent
 import android.content.IntentSender
 import android.content.pm.PackageManager
 import android.location.Location
 import android.os.Bundle
 import android.widget.Toast
-import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
-import androidx.core.location.LocationManagerCompat.requestLocationUpdates
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
-import androidx.navigationevent.NavigationEventDispatcher
 import com.google.android.gms.common.api.ResolvableApiException
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
