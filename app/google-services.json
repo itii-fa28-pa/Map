@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "826921049547",
+    "project_id": "itii-fa-28-map",
+    "storage_bucket": "itii-fa-28-map.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:826921049547:android:a09bbb68fde92240552a4e",
+        "android_client_info": {
+          "package_name": "fr.map"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD82WJ2xaOnUvZ7L3BImFTlGvrRNl4laaM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
