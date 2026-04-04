@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MapActivity">
+
+    <!-- Carte en fond -->
+    <org.osmdroid.views.MapView
+        android:id="@+id/mapViewLive"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <!-- Bouton retour -->
+    <ImageButton
+        android:id="@+id/btnBack"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_margin="16dp"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentStart="true"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:src="@android:drawable/ic_menu_revert"
+        android:contentDescription="Retour"
+        android:padding="12dp"
+        android:elevation="6dp" />
+
+    <!-- Champ recherche -->
+    <EditText
+        android:id="@+id/editSearch"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_toEndOf="@id/btnBack"
+        android:layout_alignTop="@id/btnBack"
+        android:layout_marginStart="8dp"
+        android:layout_marginEnd="16dp"
+        android:background="@android:drawable/edit_text"
+        android:hint="Recherche..."
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:elevation="6dp"
+        android:singleLine="true" />
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/btnCenter"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentStart="true"
+        android:layout_margin="24dp"
+        android:contentDescription="Recentrer"
+        android:src="@android:drawable/ic_menu_mylocation"
+        app:backgroundTint="@android:color/white"
+        app:tint="@android:color/black"
+        android:elevation="8dp" />
+
+    <!-- Bouton + flottant -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/btnAdd"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentEnd="true"
+        android:layout_margin="24dp"
+        android:contentDescription="Ajouter"
+        android:src="@android:drawable/ic_input_add"
+        app:backgroundTint="@android:color/holo_blue_dark"
+        app:tint="@android:color/white"
+        android:elevation="8dp" />
+
+</RelativeLayout>

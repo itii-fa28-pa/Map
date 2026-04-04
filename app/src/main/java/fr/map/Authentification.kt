@@ -1,6 +1,8 @@
 package fr.map
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
 import android.view.View
@@ -13,6 +15,8 @@ import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.auth
 import android.widget.Toast
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat.startActivity
 import androidx.core.view.WindowCompat.enableEdgeToEdge
 import kotlin.jvm.java
 
@@ -31,9 +35,27 @@ class Authentification : AppCompatActivity() {
             insets
 
         }
+        requestForPermission();
+    }
+
+    fun requestForPermission() {
+        val permissions = arrayOf(Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_COARSE_LOCATION)
+
+        if(ActivityCompat.checkSelfPermission(this, permissions[0]) !=
+            PackageManager.PERMISSION_GRANTED ||
+            ActivityCompat.checkSelfPermission(this, permissions[1]) !=
+            PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, permissions, 100)
+        }
     }
 
     fun onClick_bt_connection(view: View) {
+
+        val intent = Intent(this, MapActivity::class.java)
+        startActivity(intent)
+        finish()
+
         val email = findViewById<EditText>(R.id.id_email).text.toString()
         val password = findViewById<EditText>(R.id.id_password).text.toString()
 
@@ -44,6 +66,7 @@ class Authentification : AppCompatActivity() {
 
         auth.signInWithEmailAndPassword(email, password)
             .addOnCompleteListener(this) { task ->
+
                 if (task.isSuccessful) {
                     Log.d("Auth", "Connexion réussie !")
                     startActivity(Intent(this, TestActivity::class.java))
@@ -77,5 +100,24 @@ class Authentification : AppCompatActivity() {
     fun onClick_bt_CreateAccount(view: View) {
         val intent = Intent(this, CreateAccountActivity::class.java)
         startActivity(intent)
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+
+        if (requestCode == 100) {
+            if (grantResults.isNotEmpty() &&
+                grantResults.all { it == PackageManager.PERMISSION_GRANTED }) {
+
+                Toast.makeText(this, "Permission Granted", Toast.LENGTH_LONG).show()
+
+            } else {
+                Toast.makeText(this, "Permission Not Granted", Toast.LENGTH_LONG).show()
+            }
+        }
     }
 }

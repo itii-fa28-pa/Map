@@ -2,26 +2,38 @@ package fr.map
 
 import android.content.Intent
 import android.os.Bundle
+import android.text.Editable
 import android.widget.Button
 import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.Toast
-import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat.startActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.WindowCompat.enableEdgeToEdge
+import androidx.core.view.WindowCompat
+import util.LocationExtensions.getCurrentUserLocation
+import ch.hsr.geohash.GeoHash
+import com.google.firebase.auth.FirebaseAuth
+import util.LocationExtensions.getSingleCurrentLocation
+
+import com.google.firebase.firestore.FirebaseFirestore;
 
 class CreateMarkerActivity : AppCompatActivity() {
 
-    override fun onCreate(savedInstanceState: Bundle?) {
+    private lateinit var fireStore: FirebaseFirestore
 
+    override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+
+        // Activer l'edge-to-edge
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+
         setContentView(R.layout.create_marker_activity)
+
+        // Application des insets (pour la gestion des barres système)
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
-            val systemBars =
-                insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(
                 systemBars.left,
                 systemBars.top,
@@ -31,54 +43,114 @@ class CreateMarkerActivity : AppCompatActivity() {
             insets
         }
 
-        // --- Récupération de toutes les composants
-        val checkbox: CheckBox = findViewById<CheckBox>(R.id.cbLocalisation)
-        val long: EditText = findViewById<EditText>(R.id.etLongitude)
-        val lat: EditText = findViewById<EditText>(R.id.etLatitude)
-        val description: EditText = findViewById<EditText>(R.id.etDescription)
+        fireStore = FirebaseFirestore.getInstance()
 
-        // --- Déclaration des listener
+        // --- Récupération des composants de l'interface
+        val checkbox: CheckBox = findViewById(R.id.cbLocalisation)
+        val etLongitude: EditText = findViewById(R.id.etLongitude)
+        val etLatitude: EditText = findViewById(R.id.etLatitude)
+        val etTitre: EditText = findViewById(R.id.etTitre)
+        val etDescription: EditText = findViewById(R.id.etDescription)
+
         checkbox.setOnClickListener {
-            val enable = !checkbox.isEnabled
-            long.isEnabled = enable
-            lat.isEnabled = enable
+            val enable = !checkbox.isChecked
+            etLongitude.isEnabled = enable
+            etLatitude.isEnabled = enable
+
+            if (enable) {
+                etLongitude.setText("")
+                etLatitude.setText("")
+            } else {
+                getSingleCurrentLocation { location ->
+                    etLatitude.setText(location.latitude.toString())
+                    etLongitude.setText(location.longitude.toString())
+                }
+            }
         }
+
         val btnConfirmer = findViewById<Button>(R.id.btnConfirmer)
         btnConfirmer.setOnClickListener {
-            Toast.makeText(this, "Vous avez cliqué sur confirmer", Toast.LENGTH_LONG).show()
-            confirmer(checkbox, lat, long, description)
+            confirmer(etLatitude, etLongitude, etDescription, etTitre)
         }
+
         val btnAnnuler = findViewById<Button>(R.id.btnAnnuler)
         btnAnnuler.setOnClickListener {
-            Toast.makeText(this, "Vous avez cliqué sur annuler", Toast.LENGTH_LONG).show()
-            annuler()
+            val intent = Intent(this, MapActivity::class.java)
+            startActivity(intent)
+            finish()
         }
     }
 
-    fun confirmer(checkBox: CheckBox, etLatitude: EditText, etLongitude: EditText,
-            etDescription: EditText) {
-        var lat: Double
-        var long: Double
+    fun confirmer(
+        etLatitude: EditText,
+        etLongitude: EditText,
+        etDescription: EditText,
+        etTitre: EditText
+    ) {
+        val latString: String = etLatitude.text.toString()
+        val longString: String = etLongitude.text.toString()
         val description: String = etDescription.text.toString()
+        val titre: String = etTitre.text.toString()
 
-        // --- On traite ou non la long et lat fournie
-        if (checkBox.isChecked) {
-            // On récupère les coordoonées via la position
-        } else {
-            // On récupère les coordonnées via les champ lat / long
-            lat = etLatitude.text.toString().toDouble()
-            long = etLongitude.text.toString().toDouble()
+        when {
+            titre.isEmpty() ->
+                Toast.makeText(this, "Veuillez entrer un titre", Toast.LENGTH_LONG).show()
+
+            description.isEmpty() ->
+                Toast.makeText(this, "Veuillez entrer une description", Toast.LENGTH_LONG).show()
+
+            latString.isEmpty() ->
+                Toast.makeText(this, "Veuillez entrer une latitude", Toast.LENGTH_LONG).show()
+
+            longString.isEmpty() ->
+                Toast.makeText(this, "Veuillez entrer une longitude", Toast.LENGTH_LONG).show()
+
+            latString.toDoubleOrNull() == null ->
+                Toast.makeText(this, "Latitude invalide", Toast.LENGTH_LONG).show()
+
+            longString.toDoubleOrNull() == null ->
+                Toast.makeText(this, "Longitude invalide", Toast.LENGTH_LONG).show()
+
+            else -> {
+                val lat: Double = latString.toDouble()
+                val long: Double = longString.toDouble()
+                val geohash = GeoHash.withCharacterPrecision(lat, long, 8).toBase32()
+
+                //Toast.makeText(this, "$titre $description $lat $long $geohash", Toast.LENGTH_LONG).show()
+
+                addMarker(titre, description, latString, longString, geohash)
+
+                // Changement de page vers MapActivity
+                val changePage = Intent(this, MapActivity::class.java)
+                startActivity(changePage)
+            }
         }
+    }
 
-        // TODO : On créer notre objet ici
+    fun addMarker(titre: String, description: String, lat: String, long: String, geoHash: String) {
 
-        // --- Changement de page
-        val changePage = Intent(this, TestActivity::class.java)
-        startActivity(changePage)
+        val newMarker = HashMap<String, String>()
+        newMarker["title"] = titre
+        newMarker["longitude"] = long
+        newMarker["latitude"] = lat
+        newMarker["description"] = description
+        newMarker["geohash"] = geoHash
+
+        fireStore
+            .collection(titre)
+            .document()
+            .set(newMarker)
+            .addOnSuccessListener {
+                Toast.makeText(this, "Success", Toast.LENGTH_SHORT).show()
+            }
+            .addOnFailureListener { e ->
+                Toast.makeText(this, "Failure: ${e.message}", Toast.LENGTH_LONG).show()
+            }
+
     }
 
     fun annuler() {
-        // --- Changement de page
+        // Changer de page vers TestActivity
         val changePage = Intent(this, TestActivity::class.java)
         startActivity(changePage)
     }
