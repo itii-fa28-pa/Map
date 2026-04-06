@@ -13,7 +13,7 @@ import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
 import ch.hsr.geohash.GeoHash
-
+import com.google.firebase.firestore.FirebaseFirestore
 import util.LocationExtensions.getCurrentUserLocation
 import util.LocationExtensions.hasLocationPermission
 import util.LocationExtensions.requestLocationPermission
@@ -21,10 +21,11 @@ import util.LocationExtensions.requestLocationPermission
 class MapActivity : AppCompatActivity() {
 
     private lateinit var mapView: MapView
-
     private var lastKnownLocation: Location? = null
+    private var lastKnownGeoHash: String? = null
     private var marker: Marker? = null
     private var firstLocation = true
+    private lateinit var fireStore: FirebaseFirestore
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -35,6 +36,12 @@ class MapActivity : AppCompatActivity() {
             getSharedPreferences("osmdroid_settings", MODE_PRIVATE)
         )
 
+        fireStore = FirebaseFirestore.getInstance()
+
+        mapView = findViewById(R.id.mapViewLive)
+        mapView.setTileSource(TileSourceFactory.MAPNIK)
+        mapView.setMultiTouchControls(true)
+
         val btnAdd = findViewById<FloatingActionButton>(R.id.btnAdd)
         btnAdd.setOnClickListener {
             startActivity(Intent(this, CreateMarkerActivity::class.java))
@@ -42,9 +49,7 @@ class MapActivity : AppCompatActivity() {
 
         val btnCenter = findViewById<FloatingActionButton>(R.id.btnCenter)
         btnCenter.setOnClickListener {
-            lastKnownLocation?.let {
-                centerUser(it)
-            }
+            lastKnownLocation?.let { centerUser(it) }
         }
 
         val btnBack = findViewById<ImageButton>(R.id.btnBack)
@@ -52,11 +57,6 @@ class MapActivity : AppCompatActivity() {
             startActivity(Intent(this, Authentification::class.java))
             finish()
         }
-
-        mapView = findViewById(R.id.mapViewLive)
-
-        mapView.setTileSource(TileSourceFactory.MAPNIK)
-        mapView.setMultiTouchControls(true)
 
         if (!hasLocationPermission()) {
             requestLocationPermission()
@@ -81,12 +81,8 @@ class MapActivity : AppCompatActivity() {
     private fun updateUserLocation(location: Location) {
         val latitude = location.latitude
         val longitude = location.longitude
-
-        val geohash = GeoHash.withCharacterPrecision(
-            latitude,
-            longitude,
-            8
-        ).toBase32()
+        val geohash = GeoHash.withCharacterPrecision(latitude, longitude, 8).toBase32()
+        lastKnownGeoHash = geohash.take(5)
 
         val currentLoc = GeoPoint(latitude, longitude)
 
@@ -94,9 +90,13 @@ class MapActivity : AppCompatActivity() {
             mapView.controller.setZoom(15.0)
             mapView.controller.setCenter(currentLoc)
             firstLocation = false
+
+            // --- Lancer le listener après avoir la position initiale
+            listenerMarkers()
         }
 
         if (marker == null) {
+
             marker = Marker(mapView).apply {
                 title = "Your Location"
                 subDescription = geohash
@@ -106,6 +106,47 @@ class MapActivity : AppCompatActivity() {
 
         marker?.position = currentLoc
         mapView.invalidate()
+    }
+
+    private fun listenerMarkers() {
+        if (lastKnownGeoHash == null) return
+
+        fireStore
+            .collection("markers")
+            .whereGreaterThanOrEqualTo("geohash", lastKnownGeoHash!!)
+            .whereLessThanOrEqualTo("geohash", lastKnownGeoHash!! + "\uf8ff")
+            .addSnapshotListener { snapshots, error ->
+
+                if (error != null) return@addSnapshotListener
+
+                // --- Garder le marker utilisateur
+                val userMarker = marker
+                mapView.overlays.clear()
+                userMarker?.let { mapView.overlays.add(it) }
+
+                snapshots?.documents?.forEach { doc ->
+                    val lat = doc.getString("latitude")?.toDoubleOrNull()
+                    val long = doc.getString("longitude")?.toDoubleOrNull()
+                    val titre = doc.getString("title")
+                    val description = doc.getString("description")
+
+                    if (lat != null && long != null && titre != null && description != null) {
+                        val geoPoint = GeoPoint(lat, long)
+                        addMarkers(geoPoint, titre, description)
+                    }
+                }
+
+                mapView.invalidate()
+            }
+    }
+
+    private fun addMarkers(geoPoint: GeoPoint, title: String, description: String) {
+        val marker = Marker(mapView).apply {
+            position = geoPoint
+            this.title = title
+            subDescription = description
+        }
+        mapView.overlays.add(marker)
     }
 
     override fun onPause() {
@@ -127,26 +168,12 @@ class MapActivity : AppCompatActivity() {
         permissions: Array<out String>,
         grantResults: IntArray
     ) {
-        super.onRequestPermissionsResult(
-            requestCode,
-            permissions,
-            grantResults
-        )
-
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == 100) {
-            if (
-                grantResults.isNotEmpty() &&
-                grantResults.all {
-                    it == android.content.pm.PackageManager.PERMISSION_GRANTED
-                }
-            ) {
+            if (grantResults.isNotEmpty() && grantResults.all { it == android.content.pm.PackageManager.PERMISSION_GRANTED }) {
                 startUserLocation()
             } else {
-                Toast.makeText(
-                    this,
-                    "Permission denied",
-                    Toast.LENGTH_SHORT
-                ).show()
+                Toast.makeText(this, "Permission denied", Toast.LENGTH_SHORT).show()
             }
         }
     }
