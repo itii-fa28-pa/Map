@@ -164,8 +164,7 @@ class CreateMarkerActivity : AppCompatActivity() {
     }
 
     fun annuler() {
-        // Changer de page vers TestActivity
-        val changePage = Intent(this, TestActivity::class.java)
+        val changePage = Intent(this, MapActivity::class.java)
         startActivity(changePage)
     }
 }
