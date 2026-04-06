@@ -2,22 +2,17 @@ package fr.map
 
 import android.content.Intent
 import android.os.Bundle
-import android.text.Editable
 import android.widget.Button
 import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat.startActivity
 import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowCompat
-import util.LocationExtensions.getCurrentUserLocation
+import androidx.core.view.WindowInsetsCompat
 import ch.hsr.geohash.GeoHash
-import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import util.LocationExtensions.getSingleCurrentLocation
-
-import com.google.firebase.firestore.FirebaseFirestore;
 
 class CreateMarkerActivity : AppCompatActivity() {
 
@@ -112,19 +107,39 @@ class CreateMarkerActivity : AppCompatActivity() {
                 Toast.makeText(this, "Longitude invalide", Toast.LENGTH_LONG).show()
 
             else -> {
-                val lat: Double = latString.toDouble()
-                val long: Double = longString.toDouble()
-                val geohash = GeoHash.withCharacterPrecision(lat, long, 8).toBase32()
 
-                //Toast.makeText(this, "$titre $description $lat $long $geohash", Toast.LENGTH_LONG).show()
+                verifierTitreDisponible(titre) { disposable ->
+                    if (disposable) {
 
-                addMarker(titre, description, latString, longString, geohash)
+                        val lat: Double = latString.toDouble()
+                        val long: Double = longString.toDouble()
+                        val geohash = GeoHash.withCharacterPrecision(lat, long, 8).toBase32()
 
-                // Changement de page vers MapActivity
-                val changePage = Intent(this, MapActivity::class.java)
-                startActivity(changePage)
+                        addMarker(titre, description, latString, longString, geohash)
+
+                        // Changement de page vers MapActivity
+                        val changePage = Intent(this, MapActivity::class.java)
+                        startActivity(changePage)
+
+                    } else {
+                        Toast.makeText(this, "Titre déjà utilisé", Toast.LENGTH_LONG).show()
+                    }
+                }
             }
         }
+    }
+
+    fun verifierTitreDisponible(titre: String, callback: (Boolean) -> Unit) {
+        fireStore
+            .collection("markers")
+            .whereEqualTo("title", titre)
+            .get()
+            .addOnSuccessListener { documents ->
+                callback(documents.isEmpty)
+            }
+            .addOnFailureListener {
+                callback(false)
+            }
     }
 
     fun addMarker(titre: String, description: String, lat: String, long: String, geoHash: String) {
@@ -137,8 +152,8 @@ class CreateMarkerActivity : AppCompatActivity() {
         newMarker["geohash"] = geoHash
 
         fireStore
-            .collection(titre)
-            .document()
+            .collection("markers")
+            .document(titre)
             .set(newMarker)
             .addOnSuccessListener {
                 Toast.makeText(this, "Success", Toast.LENGTH_SHORT).show()
@@ -146,7 +161,6 @@ class CreateMarkerActivity : AppCompatActivity() {
             .addOnFailureListener { e ->
                 Toast.makeText(this, "Failure: ${e.message}", Toast.LENGTH_LONG).show()
             }
-
     }
 
     fun annuler() {
