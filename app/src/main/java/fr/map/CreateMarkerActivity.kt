@@ -1,22 +1,43 @@
 package fr.map
 
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
+import android.view.View
 import android.widget.Button
 import android.widget.CheckBox
 import android.widget.EditText
+import android.widget.ImageView
+import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import ch.hsr.geohash.GeoHash
+import com.google.android.material.card.MaterialCardView
 import com.google.firebase.firestore.FirebaseFirestore
 import util.LocationExtensions.getSingleCurrentLocation
 
 class CreateMarkerActivity : AppCompatActivity() {
 
     private lateinit var fireStore: FirebaseFirestore
+    private var selectedImageUri: Uri? = null
+
+    private val pickImageLauncher =
+        registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+            if (uri != null) {
+                selectedImageUri = uri
+                findViewById<ImageView>(R.id.ivSelectedImage).apply {
+                    setImageURI(uri)
+                    visibility = View.VISIBLE
+                }
+                findViewById<ImageView>(R.id.ivPlaceholderIcon).visibility = View.GONE
+                findViewById<TextView>(R.id.tvImagePlaceholder).visibility = View.GONE
+            }
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -61,6 +82,12 @@ class CreateMarkerActivity : AppCompatActivity() {
                     etLongitude.setText(location.longitude.toString())
                 }
             }
+        }
+
+        findViewById<MaterialCardView>(R.id.flImagePicker).setOnClickListener {
+            pickImageLauncher.launch(
+                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+            )
         }
 
         val btnConfirmer = findViewById<Button>(R.id.btnConfirmer)
@@ -151,6 +178,15 @@ class CreateMarkerActivity : AppCompatActivity() {
         newMarker["description"] = description
         newMarker["geohash"] = geoHash
 
+        val imageUri = selectedImageUri
+        if (imageUri != null) {
+            val inputStream = contentResolver.openInputStream(imageUri)
+            val bytes = inputStream?.readBytes()
+            inputStream?.close()
+            val base64 = android.util.Base64.encodeToString(bytes, android.util.Base64.DEFAULT)
+            newMarker["imageBase64"] = base64
+        }
+
         fireStore
             .collection("markers")
             .document(titre)
@@ -164,6 +200,7 @@ class CreateMarkerActivity : AppCompatActivity() {
     }
 
     fun annuler() {
+        // Changer de page vers TestActivity
         val changePage = Intent(this, MapActivity::class.java)
         startActivity(changePage)
     }

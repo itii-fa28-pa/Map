@@ -99,7 +99,62 @@
             android:layout_height="wrap_content"
             android:hint="Ex : 2.3522"
             android:inputType="numberDecimal"
-            android:layout_marginBottom="32dp" />
+            android:layout_marginBottom="24dp" />
+
+        <!-- Image -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Image"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp" />
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/flImagePicker"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp"
+            android:clickable="true"
+            android:focusable="true"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="0dp"
+            app:strokeColor="#CCCCCC"
+            app:strokeWidth="1dp"
+            app:cardBackgroundColor="#F9F9F9">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:padding="12dp">
+
+                <ImageView
+                    android:id="@+id/ivSelectedImage"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:scaleType="centerCrop"
+                    android:visibility="gone" />
+
+                <ImageView
+                    android:id="@+id/ivPlaceholderIcon"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:src="@android:drawable/ic_menu_gallery"
+                    android:alpha="0.4" />
+
+                <TextView
+                    android:id="@+id/tvImagePlaceholder"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Ajouter une image"
+                    android:textSize="14sp"
+                    android:alpha="0.5"
+                    android:layout_marginStart="12dp" />
+
+            </LinearLayout>
+
+        </com.google.android.material.card.MaterialCardView>
 
         <!-- Boutons -->
         <LinearLayout

@@ -53,9 +53,6 @@ class Authentification : AppCompatActivity() {
     fun onClick_bt_connection(view: View) {
 
         val intent = Intent(this, MapActivity::class.java)
-        startActivity(intent)
-        finish()
-
         val email = findViewById<EditText>(R.id.id_email).text.toString()
         val password = findViewById<EditText>(R.id.id_password).text.toString()
 
@@ -69,7 +66,7 @@ class Authentification : AppCompatActivity() {
 
                 if (task.isSuccessful) {
                     Log.d("Auth", "Connexion réussie !")
-                    startActivity(Intent(this, TestActivity::class.java))
+                    startActivity(Intent(this, MapActivity::class.java))
                     finish()
                 } else {
                     // Récupère le type d'erreur Firebase
