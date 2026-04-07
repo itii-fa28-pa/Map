@@ -2,9 +2,11 @@ package fr.map
 
 import android.content.Intent
 import android.location.Location
+import android.os.Build
 import android.os.Bundle
 import android.widget.ImageButton
 import android.widget.Toast
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import org.osmdroid.config.Configuration
@@ -27,6 +29,10 @@ class MapActivity : AppCompatActivity() {
     private var firstLocation = true
     private lateinit var fireStore: FirebaseFirestore
 
+    // --- Variable pour le rôle Admin
+    private var isAdmin = false
+
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_map)
@@ -37,6 +43,37 @@ class MapActivity : AppCompatActivity() {
         )
 
         fireStore = FirebaseFirestore.getInstance()
+
+        // --- Vérifier si l'utilisateur est Admin
+        checkUserRole()
+
+        // --- ÉCOUTEUR INTERNET
+        val cm = getSystemService(android.net.ConnectivityManager::class.java)
+        var isFirstCall = true
+        cm.registerDefaultNetworkCallback(object : android.net.ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: android.net.Network) {
+                if (!isFirstCall) {
+                    runOnUiThread { android.widget.Toast.makeText(applicationContext, "Internet rétabli", android.widget.Toast.LENGTH_SHORT).show() }
+                }
+                isFirstCall = false
+            }
+            override fun onLost(network: android.net.Network) {
+                runOnUiThread { android.widget.Toast.makeText(applicationContext, "Connexion perdue", android.widget.Toast.LENGTH_LONG).show() }
+            }
+        })
+        // --- ÉCOUTEUR GPS
+        val gpsReceiver = object : android.content.BroadcastReceiver() {
+            override fun onReceive(context: android.content.Context?, intent: android.content.Intent?) {
+                val isGpsEnabled = (getSystemService(android.location.LocationManager::class.java))
+                    .isProviderEnabled(android.location.LocationManager.GPS_PROVIDER)
+                if (!isGpsEnabled) {
+                    android.widget.Toast.makeText(applicationContext, "GPS coupé : position imprécise", android.widget.Toast.LENGTH_LONG).show()
+                } else {
+                    android.widget.Toast.makeText(applicationContext, "GPS activé", android.widget.Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+        registerReceiver(gpsReceiver, android.content.IntentFilter(android.location.LocationManager.PROVIDERS_CHANGED_ACTION), RECEIVER_EXPORTED)
 
         mapView = findViewById(R.id.mapViewLive)
         mapView.setTileSource(TileSourceFactory.MAPNIK)
@@ -65,6 +102,19 @@ class MapActivity : AppCompatActivity() {
             requestLocationPermission()
         } else {
             startUserLocation()
+        }
+    }
+
+    private fun checkUserRole() {
+        val currentUserId = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
+        if (currentUserId != null) {
+            fireStore.collection("users").document(currentUserId).get()
+                .addOnSuccessListener { document ->
+                    isAdmin = document.getString("role") == "admin"
+                    if (isAdmin) {
+                        Toast.makeText(this, "Connecté en tant qu'ADMIN", Toast.LENGTH_SHORT).show()
+                    }
+                }
         }
     }
 
@@ -139,6 +189,25 @@ class MapActivity : AppCompatActivity() {
             position = geoPoint
             this.title = title
             subDescription = description
+
+            // --- FEATURE ADMIN : Supprimer au clic
+            setOnMarkerClickListener { m, _ ->
+                if (isAdmin) {
+                    androidx.appcompat.app.AlertDialog.Builder(this@MapActivity)
+                        .setTitle("Supprimer le marqueur")
+                        .setMessage("Voulez-vous vraiment supprimer '$title' ?")
+                        .setPositiveButton("Oui") { _, _ ->
+                            fireStore.collection("markers").document(title).delete()
+                                .addOnSuccessListener {
+                                    Toast.makeText(this@MapActivity, "Marqueur supprimé", Toast.LENGTH_SHORT).show()
+                                }
+                        }
+                        .setNegativeButton("Non", null)
+                        .show()
+                }
+                m.showInfoWindow()
+                true
+            }
 
             if (!base64Image.isNullOrEmpty()) {
                 try {
