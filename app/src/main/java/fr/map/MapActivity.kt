@@ -104,6 +104,8 @@ class MapActivity : AppCompatActivity() {
             true
         }
 
+        listenerMarkers()
+
         if (!hasLocationPermission()) {
             requestLocationPermission()
         } else {
@@ -156,11 +158,7 @@ class MapActivity : AppCompatActivity() {
         val latitude = location.latitude
         val longitude = location.longitude
         val geohash = GeoHash.withCharacterPrecision(latitude, longitude, 8).toBase32()
-        val geoHashPrefix = geohash.take(3)
-        if (geoHashPrefix != lastKnownGeoHash) {
-            lastKnownGeoHash = geoHashPrefix
-            listenerMarkers(geoHashPrefix)
-        }
+        lastKnownGeoHash = geohash.take(3)
 
         val currentLoc = GeoPoint(latitude, longitude)
 
@@ -182,12 +180,10 @@ class MapActivity : AppCompatActivity() {
         mapView.invalidate()
     }
 
-    private fun listenerMarkers(geoHashPrefix: String) {
+    private fun listenerMarkers() {
         markersListenerRegistration?.remove()
         markersListenerRegistration = fireStore
             .collection("markers")
-            .whereGreaterThanOrEqualTo("geohash", geoHashPrefix)
-            .whereLessThanOrEqualTo("geohash", geoHashPrefix + "\uf8ff")
             .limit(100)
             .addSnapshotListener { snapshots, error ->
                 if (error != null) return@addSnapshotListener
