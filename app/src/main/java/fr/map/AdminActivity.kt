@@ -2,6 +2,7 @@ package fr.map
 
 import android.content.Intent
 import android.os.Bundle
+import android.widget.Button
 import android.widget.ImageButton
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
@@ -46,6 +47,12 @@ class AdminActivity : AppCompatActivity() {
             finish()
         }
 
+        val btnRefresh = findViewById<Button>(R.id.btnRefresh)
+        btnRefresh.setOnClickListener {
+            loadMarkers()
+            Toast.makeText(this, "Liste actualisee", Toast.LENGTH_SHORT).show()
+        }
+
         loadMarkers()
     }
 
@@ -64,7 +71,7 @@ class AdminActivity : AppCompatActivity() {
                     val latitude = doc.getString("latitude") ?: ""
                     val longitude = doc.getString("longitude") ?: ""
                     val geohash = doc.getString("geohash") ?: ""
-                    val image = doc.getString("image") ?: ""
+                    val image = doc.getString("imageBase64") ?: ""
 
                     Marker(doc.id, title, description, latitude, longitude, geohash, image)
                 }
@@ -91,7 +98,7 @@ class AdminActivity : AppCompatActivity() {
             "latitude" to marker.latitude,
             "longitude" to marker.longitude,
             "geohash" to marker.geohash,
-            "image" to marker.image
+            "imageBase64" to marker.image
         )
 
         fireStore.collection("markers")

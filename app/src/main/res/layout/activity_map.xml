@@ -13,7 +13,6 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
-    <!-- Bouton retour -->
     <ImageButton
         android:id="@+id/btnBack"
         android:layout_width="48dp"
@@ -27,7 +26,6 @@
         android:padding="12dp"
         android:elevation="6dp" />
 
-    <!-- Champ recherche -->
     <EditText
         android:id="@+id/editSearch"
         android:layout_width="match_parent"
@@ -56,7 +54,6 @@
         app:tint="@android:color/black"
         android:elevation="8dp" />
 
-    <!-- Bouton + flottant -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/btnAdd"
         android:layout_width="wrap_content"
