@@ -16,19 +16,17 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.auth
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat.startActivity
-import androidx.core.view.WindowCompat.enableEdgeToEdge
 import kotlin.jvm.java
 
 class Authentification : AppCompatActivity() {
 
-    private lateinit var auth: FirebaseAuth  //authentification avec firebase
+    private lateinit var auth: FirebaseAuth
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContentView(R.layout.authentification_activity)
-        auth = Firebase.auth // authentification a firebase
+        auth = Firebase.auth
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
@@ -51,7 +49,6 @@ class Authentification : AppCompatActivity() {
     }
 
     fun onClick_bt_connection(view: View) {
-
         val intent = Intent(this, MapActivity::class.java)
         val email = findViewById<EditText>(R.id.id_email).text.toString()
         val password = findViewById<EditText>(R.id.id_password).text.toString()

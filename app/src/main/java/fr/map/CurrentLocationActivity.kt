@@ -22,7 +22,6 @@ class CurrentLocationActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Charger la configuration osmdroid si tu veux stocker le cache local
         Configuration.getInstance().load(
             applicationContext,
             getSharedPreferences("osmdroid_settings", MODE_PRIVATE)
@@ -38,7 +37,6 @@ class CurrentLocationActivity : AppCompatActivity() {
     }
 
     private fun getCurrentLocation() {
-        // Vérification des permissions
         if (ActivityCompat.checkSelfPermission(
                 this,
                 Manifest.permission.ACCESS_FINE_LOCATION
@@ -90,7 +88,6 @@ class CurrentLocationActivity : AppCompatActivity() {
         }
     }
 
-    // Gérer le retour de la permission
     override fun onRequestPermissionsResult(
         requestCode: Int,
         permissions: Array<out String>,

@@ -180,11 +180,44 @@ class CreateMarkerActivity : AppCompatActivity() {
 
         val imageUri = selectedImageUri
         if (imageUri != null) {
-            val inputStream = contentResolver.openInputStream(imageUri)
-            val bytes = inputStream?.readBytes()
-            inputStream?.close()
-            val base64 = android.util.Base64.encodeToString(bytes, android.util.Base64.DEFAULT)
-            newMarker["imageBase64"] = base64
+            try {
+                // 1. Ouvrir le flux de l'image sélectionnée
+                val inputStream = contentResolver.openInputStream(imageUri)
+                val originalBitmap = android.graphics.BitmapFactory.decodeStream(inputStream)
+                inputStream?.close()
+
+                if (originalBitmap != null) {
+                    // 2. Redimensionner l'image (max 800px de large ou haut pour rester léger)
+                    val maxSize = 800
+                    val width = originalBitmap.width
+                    val height = originalBitmap.height
+                    val ratio = width.toFloat() / height.toFloat()
+
+                    val newWidth: Int
+                    val newHeight: Int
+                    if (width > height) {
+                        newWidth = maxSize
+                        newHeight = (maxSize / ratio).toInt()
+                    } else {
+                        newHeight = maxSize
+                        newWidth = (maxSize * ratio).toInt()
+                    }
+
+                    val scaledBitmap = android.graphics.Bitmap.createScaledBitmap(originalBitmap, newWidth, newHeight, true)
+
+                    // 3. Compresser en JPEG (qualité 70% pour un bon compromis poids/visuel)
+                    val outputStream = java.io.ByteArrayOutputStream()
+                    scaledBitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 70, outputStream)
+                    val bytes = outputStream.toByteArray()
+
+                    // 4. Convertir en Base64 pour Firestore
+                    val base64 = android.util.Base64.encodeToString(bytes, android.util.Base64.DEFAULT)
+                    newMarker["imageBase64"] = base64
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                Toast.makeText(this, "Erreur lors de la compression de l'image", Toast.LENGTH_SHORT).show()
+            }
         }
 
         fireStore
