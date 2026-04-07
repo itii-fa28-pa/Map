@@ -14,6 +14,7 @@ import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
 import ch.hsr.geohash.GeoHash
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
 import util.LocationExtensions.getCurrentUserLocation
 import util.LocationExtensions.hasLocationPermission
 import util.LocationExtensions.requestLocationPermission
@@ -25,7 +26,11 @@ class MapActivity : AppCompatActivity() {
     private var lastKnownGeoHash: String? = null
     private var userMarker: Marker? = null
     private var firstLocation = true
+
     private lateinit var fireStore: FirebaseFirestore
+
+    private var activeGeoHash: String? = null
+    private var markerListener: ListenerRegistration? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -52,7 +57,9 @@ class MapActivity : AppCompatActivity() {
 
         val btnCenter = findViewById<FloatingActionButton>(R.id.btnCenter)
         btnCenter.setOnClickListener {
-            lastKnownLocation?.let { centerUser(it) }
+            lastKnownLocation?.let {
+                centerUser(it)
+            }
         }
 
         val btnBack = findViewById<ImageButton>(R.id.btnBack)
@@ -84,8 +91,19 @@ class MapActivity : AppCompatActivity() {
     private fun updateUserLocation(location: Location) {
         val latitude = location.latitude
         val longitude = location.longitude
-        val geohash = GeoHash.withCharacterPrecision(latitude, longitude, 8).toBase32()
-        lastKnownGeoHash = geohash.take(5)
+
+        val geohash = GeoHash.withCharacterPrecision(
+            latitude,
+            longitude,
+            8
+        ).toBase32()
+
+        val newGeoHash = geohash.take(5)
+
+        if (activeGeoHash != newGeoHash) {
+            activeGeoHash = newGeoHash
+            listenerMarkers()
+        }
 
         val currentLoc = GeoPoint(latitude, longitude)
 
@@ -108,15 +126,23 @@ class MapActivity : AppCompatActivity() {
     }
 
     private fun listenerMarkers() {
-        fireStore
+        if (activeGeoHash == null) return
+
+        markerListener?.remove()
+
+        markerListener = fireStore
             .collection("markers")
-            .limit(100)
+            .whereGreaterThanOrEqualTo("geohash", activeGeoHash!!)
+            .whereLessThanOrEqualTo("geohash", activeGeoHash!! + "\uf8ff")
             .addSnapshotListener { snapshots, error ->
                 if (error != null) return@addSnapshotListener
 
+                val userMarker = marker
                 // On vide tout et on remet seulement le marqueur utilisateur s'il existe
                 mapView.overlays.clear()
-                userMarker?.let { mapView.overlays.add(it) }
+                userMarker?.let {
+                    mapView.overlays.add(it)
+                }
 
                 snapshots?.documents?.forEach { doc ->
                     val lat = doc.get("latitude")?.toString()?.toDoubleOrNull()
@@ -153,6 +179,7 @@ class MapActivity : AppCompatActivity() {
                 }
             }
         }
+
         mapView.overlays.add(marker)
     }
 
@@ -169,17 +196,36 @@ class MapActivity : AppCompatActivity() {
         }
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+        markerListener?.remove()
+    }
+
     override fun onRequestPermissionsResult(
         requestCode: Int,
         permissions: Array<out String>,
         grantResults: IntArray
     ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        super.onRequestPermissionsResult(
+            requestCode,
+            permissions,
+            grantResults
+        )
+
         if (requestCode == 100) {
-            if (grantResults.isNotEmpty() && grantResults.all { it == android.content.pm.PackageManager.PERMISSION_GRANTED }) {
+            if (
+                grantResults.isNotEmpty() &&
+                grantResults.all {
+                    it == android.content.pm.PackageManager.PERMISSION_GRANTED
+                }
+            ) {
                 startUserLocation()
             } else {
-                Toast.makeText(this, "Permission denied", Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    this,
+                    "Permission denied",
+                    Toast.LENGTH_SHORT
+                ).show()
             }
         }
     }
