@@ -98,6 +98,16 @@ class MapActivity : AppCompatActivity() {
             finish()
         }
 
+        // --- Initialisation barre de recherche
+        val editSearch = findViewById<android.widget.EditText>(R.id.editSearch)
+        editSearch.setOnEditorActionListener { v, actionId, event ->
+            val query = editSearch.text.toString().trim()
+            if (query.isNotEmpty()) {
+                searchMarker(query)
+            }
+            true
+        }
+
         if (!hasLocationPermission()) {
             requestLocationPermission()
         } else {
@@ -115,6 +125,23 @@ class MapActivity : AppCompatActivity() {
                         Toast.makeText(this, "Connecté en tant qu'ADMIN", Toast.LENGTH_SHORT).show()
                     }
                 }
+        }
+    }
+
+    private fun searchMarker(query: String) {
+        if (!::mapView.isInitialized) return
+
+        // On parcourt les overlays de la carte pour trouver un Marker qui correspond
+        val foundMarker = mapView.overlays.filterIsInstance<Marker>().find { marker ->
+            marker.title?.contains(query, ignoreCase = true) == true
+        }
+
+        if (foundMarker != null) {
+            mapView.controller.animateTo(foundMarker.position)
+            mapView.controller.setZoom(18.0)
+            foundMarker.showInfoWindow()
+        } else {
+            Toast.makeText(this, "Aucun marqueur trouvé pour '$query'", Toast.LENGTH_SHORT).show()
         }
     }
 
