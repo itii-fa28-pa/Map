@@ -23,7 +23,7 @@ class MapActivity : AppCompatActivity() {
     private lateinit var mapView: MapView
     private var lastKnownLocation: Location? = null
     private var lastKnownGeoHash: String? = null
-    private var marker: Marker? = null
+    private var userMarker: Marker? = null
     private var firstLocation = true
     private lateinit var fireStore: FirebaseFirestore
 
@@ -41,6 +41,9 @@ class MapActivity : AppCompatActivity() {
         mapView = findViewById(R.id.mapViewLive)
         mapView.setTileSource(TileSourceFactory.MAPNIK)
         mapView.setMultiTouchControls(true)
+
+        // --- Lancer l'écoute des marqueurs
+        listenerMarkers()
 
         val btnAdd = findViewById<FloatingActionButton>(R.id.btnAdd)
         btnAdd.setOnClickListener {
@@ -90,61 +93,65 @@ class MapActivity : AppCompatActivity() {
             mapView.controller.setZoom(15.0)
             mapView.controller.setCenter(currentLoc)
             firstLocation = false
-
-            // --- Lancer le listener après avoir la position initiale
-            listenerMarkers()
         }
 
-        if (marker == null) {
-
-            marker = Marker(mapView).apply {
+        if (userMarker == null) {
+            userMarker = Marker(mapView).apply {
                 title = "Your Location"
                 subDescription = geohash
             }
-            mapView.overlays.add(marker)
+            mapView.overlays.add(userMarker)
         }
 
-        marker?.position = currentLoc
+        userMarker?.position = currentLoc
         mapView.invalidate()
     }
 
     private fun listenerMarkers() {
-        if (lastKnownGeoHash == null) return
-
         fireStore
             .collection("markers")
-            .whereGreaterThanOrEqualTo("geohash", lastKnownGeoHash!!)
-            .whereLessThanOrEqualTo("geohash", lastKnownGeoHash!! + "\uf8ff")
+            .limit(100)
             .addSnapshotListener { snapshots, error ->
-
                 if (error != null) return@addSnapshotListener
 
-                // --- Garder le marker utilisateur
-                val userMarker = marker
+                // On vide tout et on remet seulement le marqueur utilisateur s'il existe
                 mapView.overlays.clear()
                 userMarker?.let { mapView.overlays.add(it) }
 
                 snapshots?.documents?.forEach { doc ->
-                    val lat = doc.getString("latitude")?.toDoubleOrNull()
-                    val long = doc.getString("longitude")?.toDoubleOrNull()
+                    val lat = doc.get("latitude")?.toString()?.toDoubleOrNull()
+                    val long = doc.get("longitude")?.toString()?.toDoubleOrNull()
                     val titre = doc.getString("title")
                     val description = doc.getString("description")
+                    val base64Image = doc.getString("imageBase64")
 
                     if (lat != null && long != null && titre != null && description != null) {
                         val geoPoint = GeoPoint(lat, long)
-                        addMarkers(geoPoint, titre, description)
+                        addMarkersToMap(geoPoint, titre, description, base64Image)
                     }
                 }
-
                 mapView.invalidate()
             }
     }
 
-    private fun addMarkers(geoPoint: GeoPoint, title: String, description: String) {
+    private fun addMarkersToMap(geoPoint: GeoPoint, title: String, description: String, base64Image: String?) {
         val marker = Marker(mapView).apply {
             position = geoPoint
             this.title = title
             subDescription = description
+
+            if (!base64Image.isNullOrEmpty()) {
+                try {
+                    val byteArrays = android.util.Base64.decode(base64Image, android.util.Base64.DEFAULT)
+                    val options = android.graphics.BitmapFactory.Options().apply {
+                        inSampleSize = 2 // Moins agressif que 4 pour garder un peu de qualité
+                    }
+                    val bitmap = android.graphics.BitmapFactory.decodeByteArray(byteArrays, 0, byteArrays.size, options)
+                    image = android.graphics.drawable.BitmapDrawable(resources, bitmap)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
         }
         mapView.overlays.add(marker)
     }
@@ -157,7 +164,6 @@ class MapActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         mapView.onResume()
-
         if (hasLocationPermission()) {
             startUserLocation()
         }

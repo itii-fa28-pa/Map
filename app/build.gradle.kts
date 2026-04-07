@@ -63,4 +63,5 @@ dependencies {
 
     implementation("org.osmdroid:osmdroid-android:6.1.20")
     implementation("ch.hsr:geohash:1.4.0")
+    implementation("com.google.firebase:firebase-storage")
 }
