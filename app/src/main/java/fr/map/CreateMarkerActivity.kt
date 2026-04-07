@@ -221,7 +221,7 @@ class CreateMarkerActivity : AppCompatActivity() {
         }
 
         fireStore
-            .collection("markers")
+            .collection("markersToValidate")
             .document(titre)
             .set(newMarker)
             .addOnSuccessListener {

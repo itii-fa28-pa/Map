@@ -16,6 +16,9 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Map">
         <activity
+            android:name=".AdminActivity"
+            android:exported="false" />
+        <activity
             android:name=".MapActivity"
             android:exported="false" />
         <activity
@@ -23,7 +26,7 @@
             android:exported="false" />
         <activity
             android:name=".CreateMarkerActivity"
-            android:exported="true"></activity>
+            android:exported="true" />
         <activity
             android:name=".CreateAccountActivity"
             android:exported="false" />
