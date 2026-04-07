@@ -30,7 +30,6 @@ class MapActivity : AppCompatActivity() {
     private var firstLocation = true
     private lateinit var fireStore: FirebaseFirestore
     private var markersListenerRegistration: ListenerRegistration? = null
-
     private var isAdmin = false
 
     @RequiresApi(Build.VERSION_CODES.O)
