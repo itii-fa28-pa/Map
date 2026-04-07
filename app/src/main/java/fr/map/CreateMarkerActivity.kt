@@ -42,12 +42,9 @@ class CreateMarkerActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Activer l'edge-to-edge
         WindowCompat.setDecorFitsSystemWindows(window, false)
-
         setContentView(R.layout.create_marker_activity)
 
-        // Application des insets (pour la gestion des barres système)
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(
@@ -181,13 +178,11 @@ class CreateMarkerActivity : AppCompatActivity() {
         val imageUri = selectedImageUri
         if (imageUri != null) {
             try {
-                // 1. Ouvrir le flux de l'image sélectionnée
                 val inputStream = contentResolver.openInputStream(imageUri)
                 val originalBitmap = android.graphics.BitmapFactory.decodeStream(inputStream)
                 inputStream?.close()
 
                 if (originalBitmap != null) {
-                    // 2. Redimensionner l'image (max 800px de large ou haut pour rester léger)
                     val maxSize = 800
                     val width = originalBitmap.width
                     val height = originalBitmap.height
@@ -204,13 +199,9 @@ class CreateMarkerActivity : AppCompatActivity() {
                     }
 
                     val scaledBitmap = android.graphics.Bitmap.createScaledBitmap(originalBitmap, newWidth, newHeight, true)
-
-                    // 3. Compresser en JPEG (qualité 70% pour un bon compromis poids/visuel)
                     val outputStream = java.io.ByteArrayOutputStream()
                     scaledBitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 70, outputStream)
                     val bytes = outputStream.toByteArray()
-
-                    // 4. Convertir en Base64 pour Firestore
                     val base64 = android.util.Base64.encodeToString(bytes, android.util.Base64.DEFAULT)
                     newMarker["imageBase64"] = base64
                 }

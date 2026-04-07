@@ -16,6 +16,7 @@ import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
 import ch.hsr.geohash.GeoHash
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
 import util.LocationExtensions.getCurrentUserLocation
 import util.LocationExtensions.hasLocationPermission
 import util.LocationExtensions.requestLocationPermission
@@ -28,8 +29,7 @@ class MapActivity : AppCompatActivity() {
     private var userMarker: Marker? = null
     private var firstLocation = true
     private lateinit var fireStore: FirebaseFirestore
-
-    // --- Variable pour le rôle Admin
+    private var markersListenerRegistration: ListenerRegistration? = null
     private var isAdmin = false
 
     @RequiresApi(Build.VERSION_CODES.O)
@@ -79,9 +79,6 @@ class MapActivity : AppCompatActivity() {
         mapView.setTileSource(TileSourceFactory.MAPNIK)
         mapView.setMultiTouchControls(true)
 
-        // --- Lancer l'écoute des marqueurs
-        listenerMarkers()
-
         val btnAdd = findViewById<FloatingActionButton>(R.id.btnAdd)
         btnAdd.setOnClickListener {
             startActivity(Intent(this, CreateMarkerActivity::class.java))
@@ -96,6 +93,15 @@ class MapActivity : AppCompatActivity() {
         btnBack.setOnClickListener {
             startActivity(Intent(this, Authentification::class.java))
             finish()
+        }
+
+        val editSearch = findViewById<android.widget.EditText>(R.id.editSearch)
+        editSearch.setOnEditorActionListener { v, actionId, event ->
+            val query = editSearch.text.toString().trim()
+            if (query.isNotEmpty()) {
+                searchMarker(query)
+            }
+            true
         }
 
         if (!hasLocationPermission()) {
@@ -118,6 +124,21 @@ class MapActivity : AppCompatActivity() {
         }
     }
 
+    private fun searchMarker(query: String) {
+        if (!::mapView.isInitialized) return
+        val foundMarker = mapView.overlays.filterIsInstance<Marker>().find { marker ->
+            marker.title?.contains(query, ignoreCase = true) == true
+        }
+
+        if (foundMarker != null) {
+            mapView.controller.animateTo(foundMarker.position)
+            mapView.controller.setZoom(18.0)
+            foundMarker.showInfoWindow()
+        } else {
+            Toast.makeText(this, "Aucun marqueur trouvé pour '$query'", Toast.LENGTH_SHORT).show()
+        }
+    }
+
     private fun startUserLocation() {
         getCurrentUserLocation { location ->
             lastKnownLocation = location
@@ -135,7 +156,11 @@ class MapActivity : AppCompatActivity() {
         val latitude = location.latitude
         val longitude = location.longitude
         val geohash = GeoHash.withCharacterPrecision(latitude, longitude, 8).toBase32()
-        lastKnownGeoHash = geohash.take(5)
+        val geoHashPrefix = geohash.take(3)
+        if (geoHashPrefix != lastKnownGeoHash) {
+            lastKnownGeoHash = geoHashPrefix
+            listenerMarkers(geoHashPrefix)
+        }
 
         val currentLoc = GeoPoint(latitude, longitude)
 
@@ -157,14 +182,15 @@ class MapActivity : AppCompatActivity() {
         mapView.invalidate()
     }
 
-    private fun listenerMarkers() {
-        fireStore
+    private fun listenerMarkers(geoHashPrefix: String) {
+        markersListenerRegistration?.remove()
+        markersListenerRegistration = fireStore
             .collection("markers")
+            .whereGreaterThanOrEqualTo("geohash", geoHashPrefix)
+            .whereLessThanOrEqualTo("geohash", geoHashPrefix + "\uf8ff")
             .limit(100)
             .addSnapshotListener { snapshots, error ->
                 if (error != null) return@addSnapshotListener
-
-                // On vide tout et on remet seulement le marqueur utilisateur s'il existe
                 mapView.overlays.clear()
                 userMarker?.let { mapView.overlays.add(it) }
 
@@ -227,6 +253,7 @@ class MapActivity : AppCompatActivity() {
 
     override fun onPause() {
         super.onPause()
+        markersListenerRegistration?.remove()
         mapView.onPause()
     }
 
