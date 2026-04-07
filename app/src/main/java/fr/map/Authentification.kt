@@ -17,10 +17,12 @@ import com.google.firebase.auth.auth
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import kotlin.jvm.java
+import com.google.firebase.firestore.FirebaseFirestore
 
 class Authentification : AppCompatActivity() {
 
     private lateinit var auth: FirebaseAuth
+    private lateinit var fireStore: FirebaseFirestore
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -34,6 +36,8 @@ class Authentification : AppCompatActivity() {
 
         }
         requestForPermission();
+
+        fireStore = FirebaseFirestore.getInstance()
     }
 
     fun requestForPermission() {
@@ -53,6 +57,8 @@ class Authentification : AppCompatActivity() {
         val email = findViewById<EditText>(R.id.id_email).text.toString()
         val password = findViewById<EditText>(R.id.id_password).text.toString()
 
+        //startActivity(Intent(this, MapActivity::class.java))
+
         if (email.isEmpty() || password.isEmpty()) {
             Log.e("Auth", "Champs vides !")
             return
@@ -63,8 +69,19 @@ class Authentification : AppCompatActivity() {
 
                 if (task.isSuccessful) {
                     Log.d("Auth", "Connexion réussie !")
-                    startActivity(Intent(this, MapActivity::class.java))
-                    finish()
+
+                    isAdmin { isAdmin ->
+
+                        if (isAdmin) {
+                            startActivity(Intent(this, AdminActivity::class.java))
+                            finish()
+                        } else {
+                            startActivity(Intent(this, MapActivity::class.java))
+                            finish()
+                        }
+
+                    }
+
                 } else {
                     // Récupère le type d'erreur Firebase
                     when {
@@ -89,6 +106,23 @@ class Authentification : AppCompatActivity() {
                 }
             }
 
+    }
+
+    fun isAdmin(
+        onResult: (Boolean) -> Unit
+    ) {
+        val email = auth.currentUser?.email ?: return
+
+        fireStore
+            .collection("admins")
+            .whereEqualTo("mail", email)
+            .get()
+            .addOnSuccessListener { result ->
+                onResult(!result.isEmpty)
+            }
+            .addOnFailureListener {
+                onResult(false)
+            }
     }
 
     fun onClick_bt_CreateAccount(view: View) {

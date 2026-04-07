@@ -73,7 +73,7 @@ class CreateAccountActivity : AppCompatActivity() {
                                 task.exception?.message?.contains("email address is already in use") == true ->
                                     Toast.makeText(
                                         this,
-                                        "Cet email est déjà utilisé",
+                                        "Ce email est déjà utilisé",
                                         Toast.LENGTH_LONG
                                     ).show()
 
