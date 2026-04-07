@@ -66,14 +66,14 @@ class CreateAccountActivity : AppCompatActivity() {
                             Log.d("Auth", "Compte créé !")
                             Toast.makeText(this, "Compte créé avec succès !", Toast.LENGTH_LONG)
                                 .show()
-                            startActivity(Intent(this, TestActivity::class.java))
+                            startActivity(Intent(this, MapActivity::class.java))
                             finish()
                         } else {
                             when {
                                 task.exception?.message?.contains("email address is already in use") == true ->
                                     Toast.makeText(
                                         this,
-                                        "Cet email est déjà utilisé",
+                                        "Ce email est déjà utilisé",
                                         Toast.LENGTH_LONG
                                     ).show()
 

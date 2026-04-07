@@ -1,22 +1,43 @@
 package fr.map
 
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
+import android.view.View
 import android.widget.Button
 import android.widget.CheckBox
 import android.widget.EditText
+import android.widget.ImageView
+import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import ch.hsr.geohash.GeoHash
+import com.google.android.material.card.MaterialCardView
 import com.google.firebase.firestore.FirebaseFirestore
 import util.LocationExtensions.getSingleCurrentLocation
 
 class CreateMarkerActivity : AppCompatActivity() {
 
     private lateinit var fireStore: FirebaseFirestore
+    private var selectedImageUri: Uri? = null
+
+    private val pickImageLauncher =
+        registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+            if (uri != null) {
+                selectedImageUri = uri
+                findViewById<ImageView>(R.id.ivSelectedImage).apply {
+                    setImageURI(uri)
+                    visibility = View.VISIBLE
+                }
+                findViewById<ImageView>(R.id.ivPlaceholderIcon).visibility = View.GONE
+                findViewById<TextView>(R.id.tvImagePlaceholder).visibility = View.GONE
+            }
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -61,6 +82,12 @@ class CreateMarkerActivity : AppCompatActivity() {
                     etLongitude.setText(location.longitude.toString())
                 }
             }
+        }
+
+        findViewById<MaterialCardView>(R.id.flImagePicker).setOnClickListener {
+            pickImageLauncher.launch(
+                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+            )
         }
 
         val btnConfirmer = findViewById<Button>(R.id.btnConfirmer)
@@ -151,8 +178,50 @@ class CreateMarkerActivity : AppCompatActivity() {
         newMarker["description"] = description
         newMarker["geohash"] = geoHash
 
+        val imageUri = selectedImageUri
+        if (imageUri != null) {
+            try {
+                // 1. Ouvrir le flux de l'image sélectionnée
+                val inputStream = contentResolver.openInputStream(imageUri)
+                val originalBitmap = android.graphics.BitmapFactory.decodeStream(inputStream)
+                inputStream?.close()
+
+                if (originalBitmap != null) {
+                    // 2. Redimensionner l'image (max 800px de large ou haut pour rester léger)
+                    val maxSize = 800
+                    val width = originalBitmap.width
+                    val height = originalBitmap.height
+                    val ratio = width.toFloat() / height.toFloat()
+
+                    val newWidth: Int
+                    val newHeight: Int
+                    if (width > height) {
+                        newWidth = maxSize
+                        newHeight = (maxSize / ratio).toInt()
+                    } else {
+                        newHeight = maxSize
+                        newWidth = (maxSize * ratio).toInt()
+                    }
+
+                    val scaledBitmap = android.graphics.Bitmap.createScaledBitmap(originalBitmap, newWidth, newHeight, true)
+
+                    // 3. Compresser en JPEG (qualité 70% pour un bon compromis poids/visuel)
+                    val outputStream = java.io.ByteArrayOutputStream()
+                    scaledBitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 70, outputStream)
+                    val bytes = outputStream.toByteArray()
+
+                    // 4. Convertir en Base64 pour Firestore
+                    val base64 = android.util.Base64.encodeToString(bytes, android.util.Base64.DEFAULT)
+                    newMarker["imageBase64"] = base64
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                Toast.makeText(this, "Erreur lors de la compression de l'image", Toast.LENGTH_SHORT).show()
+            }
+        }
+
         fireStore
-            .collection("markers")
+            .collection("markersToValidate")
             .document(titre)
             .set(newMarker)
             .addOnSuccessListener {
@@ -165,7 +234,7 @@ class CreateMarkerActivity : AppCompatActivity() {
 
     fun annuler() {
         // Changer de page vers TestActivity
-        val changePage = Intent(this, TestActivity::class.java)
+        val changePage = Intent(this, MapActivity::class.java)
         startActivity(changePage)
     }
 }
