@@ -16,6 +16,7 @@ import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
 import ch.hsr.geohash.GeoHash
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
 import util.LocationExtensions.getCurrentUserLocation
 import util.LocationExtensions.hasLocationPermission
 import util.LocationExtensions.requestLocationPermission
@@ -28,8 +29,8 @@ class MapActivity : AppCompatActivity() {
     private var userMarker: Marker? = null
     private var firstLocation = true
     private lateinit var fireStore: FirebaseFirestore
+    private var markersListenerRegistration: ListenerRegistration? = null
 
-    // --- Variable pour le rôle Admin
     private var isAdmin = false
 
     @RequiresApi(Build.VERSION_CODES.O)
@@ -79,9 +80,6 @@ class MapActivity : AppCompatActivity() {
         mapView.setTileSource(TileSourceFactory.MAPNIK)
         mapView.setMultiTouchControls(true)
 
-        // --- Lancer l'écoute des marqueurs
-        listenerMarkers()
-
         val btnAdd = findViewById<FloatingActionButton>(R.id.btnAdd)
         btnAdd.setOnClickListener {
             startActivity(Intent(this, CreateMarkerActivity::class.java))
@@ -98,7 +96,6 @@ class MapActivity : AppCompatActivity() {
             finish()
         }
 
-        // --- Initialisation barre de recherche
         val editSearch = findViewById<android.widget.EditText>(R.id.editSearch)
         editSearch.setOnEditorActionListener { v, actionId, event ->
             val query = editSearch.text.toString().trim()
@@ -130,8 +127,6 @@ class MapActivity : AppCompatActivity() {
 
     private fun searchMarker(query: String) {
         if (!::mapView.isInitialized) return
-
-        // On parcourt les overlays de la carte pour trouver un Marker qui correspond
         val foundMarker = mapView.overlays.filterIsInstance<Marker>().find { marker ->
             marker.title?.contains(query, ignoreCase = true) == true
         }
@@ -162,7 +157,11 @@ class MapActivity : AppCompatActivity() {
         val latitude = location.latitude
         val longitude = location.longitude
         val geohash = GeoHash.withCharacterPrecision(latitude, longitude, 8).toBase32()
-        lastKnownGeoHash = geohash.take(5)
+        val geoHashPrefix = geohash.take(3)
+        if (geoHashPrefix != lastKnownGeoHash) {
+            lastKnownGeoHash = geoHashPrefix
+            listenerMarkers(geoHashPrefix)
+        }
 
         val currentLoc = GeoPoint(latitude, longitude)
 
@@ -184,14 +183,15 @@ class MapActivity : AppCompatActivity() {
         mapView.invalidate()
     }
 
-    private fun listenerMarkers() {
-        fireStore
+    private fun listenerMarkers(geoHashPrefix: String) {
+        markersListenerRegistration?.remove()
+        markersListenerRegistration = fireStore
             .collection("markers")
+            .whereGreaterThanOrEqualTo("geohash", geoHashPrefix)
+            .whereLessThanOrEqualTo("geohash", geoHashPrefix + "\uf8ff")
             .limit(100)
             .addSnapshotListener { snapshots, error ->
                 if (error != null) return@addSnapshotListener
-
-                // On vide tout et on remet seulement le marqueur utilisateur s'il existe
                 mapView.overlays.clear()
                 userMarker?.let { mapView.overlays.add(it) }
 
@@ -254,6 +254,7 @@ class MapActivity : AppCompatActivity() {
 
     override fun onPause() {
         super.onPause()
+        markersListenerRegistration?.remove()
         mapView.onPause()
     }
 
